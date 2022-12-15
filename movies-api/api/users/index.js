@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import movieModel from '../movies/movieModel';
 
 const router = express.Router(); // eslint-disable-line
+let passwordParams = new RegExp("^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{5,}$");
 
 // Get all users
 router.get('/', async (req, res) => {
@@ -16,6 +17,10 @@ router.get('/', async (req, res) => {
 router.post('/',asyncHandler( async (req, res, next) => {
     if (!req.body.username || !req.body.password) {
       res.status(401).json({success: false, msg: 'Please pass username and password.'});
+      return next();
+    }
+    if (passwordParams.test(req.body.password)){
+      res.status(401).json({success: false, msg :'Please  ensure your password is at least 5 characters long and contain at least one number and one letter.'});
       return next();
     }
     if (req.query.action === 'register') {
@@ -63,7 +68,8 @@ router.post('/:userName/favourites', asyncHandler(async (req, res) => {
     const userName = req.params.userName;
     const movie = await movieModel.findByMovieDBId(newFavourite);
     const user = await User.findByUserName(userName);
-    await user.favourites.push(movie._id);
+    !user.favourites.includes(movie._id) ? await user.favourites.push(movie._id) :
+    res.status(401).json({code: 401, msg: 'Favourite already exists'})
     await user.save(); 
     res.status(201).json(user); 
   }));
